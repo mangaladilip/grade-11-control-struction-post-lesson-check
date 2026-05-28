@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick check</title>
+  <style>
+    :root {
+      --primary: #724b9e;
+      --yellow: #e8d227;
+      --cream: #f2f1e8;
+      --white: #f9f9fa;
+      --dark: #232323;
+      --green: #3a7d44;
+      --red: #b83f5c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
+      background: transparent;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .card {
+      width: 720px;
+      background: var(--white);
+      border-radius: 16px;
+      padding: 1.6rem 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    .q-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.07em;
+      margin-bottom: 0.55rem;
+    }
+
+    .q-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      font-weight: 400;
+    }
+
+    .code-block {
+      background: #1e1e2e;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: #cdd6f4;
+      line-height: 1.7;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--cream);
+      border: 2px solid #ddd;
+      border-radius: 9px;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
+      color: var(--dark);
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+      width: 100%;
+    }
+    .option:hover:not(:disabled) { border-color: var(--primary); background: #f0eaf9; }
+    .option.selected  { border-color: var(--primary); background: #f0eaf9; }
+    .option.correct   { border-color: var(--green); background: #eaf5ec; color: var(--green); }
+    .option.wrong     { border-color: var(--red);   background: #fdf0f3; color: var(--red); }
+    .option:disabled  { cursor: not-allowed; }
+
+    .letter {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .option.correct .letter { background: var(--green); }
+    .option.wrong   .letter { background: var(--red); }
+
+    .feedback {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .feedback.show { display: block; }
+    .feedback.correct-fb { background: #eaf5ec; border: 1.5px solid var(--green); color: var(--green); }
+    .feedback.wrong-fb   { background: #fdf0f3; border: 1.5px solid var(--red);   color: var(--red); }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1rem; }
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border-radius: 9px;
+      font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.86; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: var(--white); }
+    .btn-next    { background: var(--yellow);  color: var(--dark); display: none; }
+
+    /* score screen */
+    .score-screen {
+      display: none;
+      text-align: center;
+      padding: 1.5rem 0 0.5rem;
+    }
+    .score-screen.show { display: block; }
+    .score-screen h2 { color: var(--primary); font-size: 1.3rem; margin-bottom: 0.5rem; }
+    .score-badge {
+      display: inline-block;
+      background: var(--primary);
+      color: var(--white);
+      font-size: 2rem;
+      font-weight: 700;
+      padding: 0.5rem 2.2rem;
+      border-radius: 999px;
+      margin: 0.8rem 0;
+    }
+    .score-msg { font-size: 0.88rem; color: #666; }
+
+    /* nav dots */
+    .nav-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 1rem;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: background 0.2s;
+    }
+    .dot.active { background: var(--primary); }
+    .dot.done   { background: #aaa; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div id="quiz-area">
+    <div class="q-label" id="q-label">QUESTION 1 OF 5</div>
+    <div class="q-text"  id="q-text"></div>
+    <div id="code-area"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-check" onclick="checkAnswer()" disabled>Check answer</button>
+      <button class="btn btn-next"    id="btn-next"  onclick="nextQuestion()">Next →</button>
+    </div>
+    <div class="nav-dots" id="nav-dots"></div>
+  </div>
+  <div class="score-screen" id="score-screen">
+    <h2>Quick check complete</h2>
+    <div class="score-badge" id="final-score"></div>
+    <p class="score-msg" id="score-msg"></p>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    text: 'What will be the output of the following code?',
+    code: `x = 10\nif x > 5:\n    print("A")\nif x > 8:\n    print("B")\nif x > 12:\n    print("C")`,
+    options: ['A', 'A  B', 'A  B  C', 'B'],
+    correct: 1,
+    feedback: {
+      correct: 'Correct. x = 10 satisfies x > 5 and x > 8 so A and B are printed. x > 12 is False so C is skipped. These are three independent if statements — each is checked separately.',
+      wrong: 'These are three independent if statements. Python checks each one separately. x = 10 satisfies x > 5 (A) and x > 8 (B) but not x > 12 (C is skipped).'
+    }
+  },
+  {
+    text: 'Which of the following correctly describes the else block in an if-elif-else statement?',
+    options: [
+      'It executes when the first condition is True',
+      'It executes when all conditions are False',
+      'It is always required',
+      'It executes after every elif block'
+    ],
+    correct: 1,
+    feedback: {
+      correct: 'Correct. The else block is the final fallback — it executes only when all if and elif conditions above it are False.',
+      wrong: 'The else block executes only when none of the if or elif conditions above it are True — it is the final fallback.'
+    }
+  },
+  {
+    text: 'What will be the output of the following code?',
+    code: `age = 18\nif age >= 18:\n    print("Eligible")\nelse:\n    print("Not eligible")`,
+    options: ['Not eligible', 'Eligible', 'No output', 'Error'],
+    correct: 1,
+    feedback: {
+      correct: 'Correct. age = 18 satisfies age >= 18 (18 >= 18 is True), so the if block executes and prints "Eligible".',
+      wrong: 'The >= operator means greater than or equal to. Since age = 18, the condition 18 >= 18 is True and the if block executes.'
+    }
+  },
+  {
+    text: 'Which of the following will cause a syntax error in Python?',
+    options: [
+      'Using four spaces for indentation',
+      'Using a tab for indentation',
+      'Not indenting the block after if',
+      'Using elif after else'
+    ],
+    correct: 2,
+    feedback: {
+      correct: 'Correct. Python uses indentation to define blocks. If the block after if is not indented, the interpreter cannot identify it as part of the if statement and throws a syntax error.',
+      wrong: 'Python defines blocks using indentation. If the statement after if is not indented the interpreter cannot identify the block — this causes a syntax error.'
+    }
+  },
+  {
+    text: 'How many blocks will execute in an if-elif-else statement when the elif condition is True?',
+    options: [
+      'All blocks execute',
+      'The elif block and the else block execute',
+      'Only the elif block executes',
+      'The if block and the elif block execute'
+    ],
+    correct: 2,
+    feedback: {
+      correct: 'Correct. Only one block executes in an if-elif-else statement — the first one whose condition is True. All remaining conditions and the else block are skipped.',
+      wrong: 'In an if-elif-else statement only one block executes. Once the elif condition is True its block runs and all remaining blocks are skipped.'
+    }
+  }
+];
+
+let current = 0, score = 0, selected = null, answered = false;
+
+function buildDots() {
+  const dots = document.getElementById('nav-dots');
+  dots.innerHTML = '';
+  questions.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.id = 'dot-' + i;
+    dots.appendChild(d);
+  });
+}
+
+function updateDots() {
+  questions.forEach((_, i) => {
+    const d = document.getElementById('dot-' + i);
+    d.className = 'dot' + (i === current ? ' active' : i < current ? ' done' : '');
+  });
+}
+
+function renderQuestion() {
+  answered = false; selected = null;
+  const q = questions[current];
+  document.getElementById('q-label').textContent = `QUESTION ${current + 1} OF ${questions.length}`;
+  document.getElementById('q-text').textContent = q.text;
+
+  const codeArea = document.getElementById('code-area');
+  codeArea.innerHTML = q.code
+    ? `<div class="code-block">${q.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+    : '';
+
+  const optEl = document.getElementById('options');
+  optEl.innerHTML = '';
+  ['a','b','c','d'].forEach((l, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.id = `opt-${i}`;
+    btn.innerHTML = `<span class="letter">${l}</span><span>${q.options[i]}</span>`;
+    btn.onclick = () => selectOpt(i);
+    optEl.appendChild(btn);
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
+  document.getElementById('btn-check').disabled = true;
+  document.getElementById('btn-next').style.display = 'none';
+  updateDots();
+}
+
+function selectOpt(i) {
+  if (answered) return;
+  document.querySelectorAll('.option').forEach(b => b.classList.remove('selected'));
+  document.getElementById(`opt-${i}`).classList.add('selected');
+  selected = i;
+  document.getElementById('btn-check').disabled = false;
+}
+
+function checkAnswer() {
+  if (selected === null || answered) return;
+  answered = true;
+  const q = questions[current];
+  document.querySelectorAll('.option').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === selected) btn.classList.add('wrong');
+  });
+  const isCorrect = selected === q.correct;
+  if (isCorrect) score++;
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
+  fb.textContent = isCorrect ? q.feedback.correct : q.feedback.wrong;
+  document.getElementById('btn-check').disabled = true;
+  if (current < questions.length - 1) {
+    document.getElementById('btn-next').style.display = 'inline-block';
+  } else {
+    setTimeout(showScore, 500);
+  }
+}
+
+function nextQuestion() {
+  current++;
+  document.getElementById('btn-next').style.display = 'none';
+  renderQuestion();
+}
+
+function showScore() {
+  document.getElementById('quiz-area').style.display = 'none';
+  const ss = document.getElementById('score-screen');
+  ss.classList.add('show');
+  document.getElementById('final-score').textContent = `${score} / ${questions.length}`;
+  const msgs = [
+    'Keep going — review the feedback for each question.',
+    'Good effort — check the questions you got wrong.',
+    'Well done — most concepts are clear.',
+    'Great work — nearly there.',
+    'Excellent — all five concepts mastered.'
+  ];
+  document.getElementById('score-msg').textContent = msgs[score] ?? msgs[msgs.length - 1];
+}
+
+buildDots();
+renderQuestion();
+</script>
+</body>
+</html>
